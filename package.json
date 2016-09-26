@@ -1,0 +1,40 @@
+{
+  "name": "demo_app",
+  "version": "0.0.1",
+  "description": "Demo application (url shortener)",
+  "keywords": [
+      "demo app",
+      " job_submission",
+      "url shortener",
+      "CRUD operations",
+      "Full Stack (MEAN)"
+    ],
+  "license": "MIT",
+  "main": "src/server.js",
+  "scripts": {
+    "start" : "nodemon src/server.js"
+  },
+  "author": {
+      "name": "Ognjen Jevremovic",
+      "email": "jevremovic.ognjen@gmail.com"
+      },
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt-nodejs": "0.0.3",
+    "body-parser": "^1.15.2",
+    "colors": "^1.1.2",
+    "express": "^4.14.0",
+    "jsonwebtoken": "^7.1.9",
+    "mongodb": "^2.2.10",
+    "serve-favicon": "^2.3.0"
+  },
+  "devDependencies": {
+    "del": "^2.2.2",
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-sass": "^2.3.2",
+    "gulp-sourcemaps": "^1.6.0",
+    "gulp-uglify": "^2.0.0"
+  }
+}
