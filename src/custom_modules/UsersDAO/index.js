@@ -25,49 +25,75 @@ function UsersDAO(db) {
     //  Add new user to the database
     this.addNew         = function(params, callback) {
 
-        //  Construct the user object
-        var userObject = {};
-        userObject._id      = params.username;
-        userObject.name     = params.name;
-        userObject.email    = params.email;
-        userObject.password = params.password;
+        //  User document constructor
+        function UserDocument(params) {
+            this._id                = params.username;
+            this.name               = params.name;
+            this.email              = params.email;
+            this.unsecurePassword   = params.password;
+        }
 
 
-        //  Generate the salt for password hashing
-        function generateSalt(resolve, reject) {
+        //  Construct the user document
+        function constructUserDocument(params) {
 
-            //  Salt generate callback
-            var genSalt_cb = function(err, salt) {
+            //  Promise callback
+            var promise_cb = function(resolve) {
 
-                //  Check if there was an error hashing the password
-                if (err) {
-
-                    //  Construct a friendly error message
-                    var saltGeneration_error = {
-                        date    : datter().time + " " + datter().date,
-                        stack   : "ERRROR! \nfile: " + __dirname + ", line 72.",
-                        message : "There was an error generating the password salt."
-                    };
-                    logger('error', saltGeneration_error);
-
-                    //  Resolve the promise with an error
-                    return resolve({
-                        error       :   saltGeneration_error
-                    });
-
-                //  No error (password hashed)
-                }
-
-                //  Resolve the promise with a salt
-                return resolve({
-                    salt            :   salt
-                });
+                //  Pass the user document
+                return resolve(new UserDocument(params));
 
             };
 
 
-            //  Generate the salt for the password hashing
-            bcrypt.genSalt(10, genSalt_cb);
+            //  Return a promise
+            return new Promise(promise_cb);
+
+        }
+
+        //  Generate the salt for password hashing
+        function generateSalt(userDocument) {
+
+            //  Promise callback
+            var promise_cb = function(resolve, reject) {
+
+                //  Salt generate callback
+                var genSalt_cb = function(err, salt) {
+
+                    //  Check if there was an error hashing the password
+                    if (err) {
+
+                        //  Construct a friendly error message
+                        var saltGeneration_error = {
+                            date    : datter().time + " " + datter().date,
+                            stack   : "ERRROR! \nfile: " + __dirname + ", line 72.",
+                            message : "There was an error generating the password salt."
+                        };
+                        logger('error', saltGeneration_error);
+
+                        //  Reject the promise with an error
+                        return reject(saltGeneration_error);
+
+                    //  No error (password hashed)
+                    }
+
+                    //  Resolve the promise with a user document and salt
+                    return resolve({
+                        userDocument    :   userDocument,
+                        salt            :   salt
+                    });
+
+                };
+
+
+                //  Generate the salt for the password hashing
+                bcrypt.genSalt(10, genSalt_cb);
+
+            };
+
+
+            //  Return a promise
+            return new Promise(promise_cb);
 
         }
 
@@ -92,34 +118,23 @@ function UsersDAO(db) {
                         logger('error', hashingPassword_error);
 
                         //  Pass the error
-                        return resolve({
-                            error           :   hashingPassword_error
-                        });
+                        return reject(hashingPassword_error);
 
-                        //  No error (password hashed)
+                    //  No error (password hashed)
                     }
 
-                    //  Return the hashed password
-                    return resolve({
-                        hashedPassword      :   hashedPassword
-                    });
+                    //  Replace the unsecure password with the hash
+                    delete params.userDocument.unsecurePassword;
+                    params.userDocument.password    = hashedPassword;
+
+                    //  Return the user document (ready for insert)
+                    return resolve(params.userDocument);
 
                 };
 
 
-                //  Check if there was an error generating the salt
-                if(params.error) {
-
-                    //  Pass the error
-                    return resolve({
-                        error       :   params.error
-                    });
-
-                //  Salt successfuly generated
-                }
-
                 //  Hash the password
-                bcrypt.hash(userObject.password, params.salt, null, hash_cb);
+                bcrypt.hash(params.userDocument.unsecurePassword, params.salt, null, hash_cb);
 
             };
 
@@ -130,7 +145,7 @@ function UsersDAO(db) {
         }
 
         //  Insert the user into database
-        function addUser(params) {
+        function addUser(userDocument) {
 
             //  Promise callback
             var promise_cb = function(resolve, reject) {
@@ -167,10 +182,8 @@ function UsersDAO(db) {
                         //  Log the error
                         logger('error', insertUser_error);
 
-                        //  Pass the error
-                        return resolve({
-                            error           :   insertUser_error
-                        });
+                        //  Reject the promise with an error
+                        return reject(insertUser_error);
 
                     //  No error (user inserted)
                     }
@@ -187,22 +200,8 @@ function UsersDAO(db) {
                 };
 
 
-                //  Check if there was an error hashing the password
-                if(params.error) {
-
-                    //  Pass the error
-                    return resolve({
-                        error       :   params.error
-                    });
-
-                //  Password successfuly hashed
-                }
-
-                //  Construct the user object
-                userObject.password     = params.hashedPassword;
-
                 //  Add the user to the "users" collection
-                usersCollection.insertOne(userObject, insertOne_cb);
+                usersCollection.insertOne(userDocument, insertOne_cb);
 
             };
 
@@ -214,12 +213,14 @@ function UsersDAO(db) {
 
         //  Pass the error/warning/userObject back to the callback
         function exit(params) {
-            return callback(params.error, params.warning, params.userInserted);
+            return callback(null, params.warning, params.userInserted);
         }
 
 
-        //  Generate the salt for password hashing
-        new Promise(generateSalt)
+        //  Construct the user document
+        constructUserDocument(params)
+            //  Generate the salt for password hashing
+            .then(generateSalt)
             //  Hash the password
             .then(hashPassword)
             //  Insert the user into database
@@ -227,8 +228,8 @@ function UsersDAO(db) {
             //  Pass the error/warning/userObject back to the callback
             .then(exit)
             //  Catch the error in the process (if any)
-            .catch(function(err) {
-                logger('error', err);
+            .catch(function(error) {
+                return callback(error, null, null);
             });
 
     };
@@ -237,68 +238,94 @@ function UsersDAO(db) {
     //  Authenticate the user
     this.authenticate   = function(params, callback) {
 
-        //  Extrach the user infrormation provided
-        var userObject = {};
-        userObject.username     =   params.username;
-        userObject.password     =   params.password;
+        //  User object constructor
+        function UserDocument(params) {
+            this.username   =   params.username;
+            this.password   =   params.password;
+        }
 
 
-        //  Query the database with the username provided
-        function queryDatabase(resolve, reject) {
+        //  Construct the user document
+        function constructUserDocument(params) {
 
-            //  Database query callback
-            var findOne_cb  =   function(err, userFound) {
+            //  Promise callback
+            var promise_cb = function(resolve) {
 
-                //  Check if there was an error querying the database
-                if(err) {
-
-                    //  Construct a friendly error message
-                    var databaseQuery_error = {
-                        date    : datter().time + " " + datter().date,
-                        stack   : "ERRROR! \nfile: " + __dirname + ", line 287.",
-                        message : "There was an error querying the database."
-                    };
-                    logger('error', databaseQuery_error);
-
-                    //  Resolve the promise with an error
-                    return resolve({
-                        error       :   databaseQuery_error
-                    });
-
-                //  Database queried successfuly
-                }
-
-                //  User does not exist (wrong username)
-                if(!userFound) {
-
-                    //  Construct a friendly error message
-                    var userNotFound_warning  = {
-                        date    : datter().time + " " + datter().date,
-                        stack   : "ERRROR! \nfile: " + __dirname + ", line 287.",
-                        message : "User not found. Please check your input and try again."
-                    };
-
-                    //  Resolve the promise with a warning
-                    return resolve({
-                        warning     :   userNotFound_warning
-                    });
-
-                //  User found
-                }
-
-                //  Resolve the promise with a user object found
-                return resolve({
-                    userFound   :   userFound
-                });
+                //  Construct new user
+                return resolve(new UserDocument(params));
 
             };
 
 
-            //  Query the database
-            usersCollection
-                .findOne({
-                    _id:    userObject.username
-                }, findOne_cb);
+            //  Return a promise
+            return new Promise(promise_cb);
+
+        }
+
+        //  Query the database with the username provided
+        function queryDatabase(userDocument) {
+
+            //  Promise callback
+            var promise_cb = function(resolve, reject) {
+
+                //  Database query callback
+                var findOne_cb  =   function(err, userFound) {
+
+                    //  Check if there was an error querying the database
+                    if(err) {
+
+                        //  Construct a friendly error message
+                        var databaseQuery_error = {
+                            date    : datter().time + " " + datter().date,
+                            stack   : "ERRROR! \nfile: " + __dirname + ", line 287.",
+                            message : "There was an error querying the database."
+                        };
+                        logger('error', databaseQuery_error);
+
+                        //  Resolve the promise with an error
+                        return reject(databaseQuery_error);
+
+                    //  Database queried successfuly
+                    }
+
+                    //  User does not exist (wrong username)
+                    if(!userFound) {
+
+                        //  Construct a friendly error message
+                        var userNotFound_warning  = {
+                            date    : datter().time + " " + datter().date,
+                            stack   : "ERRROR! \nfile: " + __dirname + ", line 287.",
+                            message : "User not found. Please check your input and try again."
+                        };
+
+                        //  Resolve the promise with a warning
+                        return resolve({
+                            warning     :   userNotFound_warning
+                        });
+
+                    //  User found
+                    }
+
+                    //  Resolve the promise with a user object found
+                    return resolve({
+                        userFound       :   userFound,
+                        infoSubmited    :   userDocument
+                    });
+
+                };
+
+
+                //  Query the database
+                usersCollection
+                    .findOne({
+                        _id:    userDocument.username
+                    }, findOne_cb);
+
+            };
+
+
+            //  Return a promise
+            return new Promise(promise_cb);
 
         }
 
@@ -323,9 +350,7 @@ function UsersDAO(db) {
                         logger('error', passwordCompare_error);
 
                         //  Resolve the promise with an error
-                        return resolve({
-                            error       :   passwordCompare_error
-                        });
+                        return reject(passwordCompare_error);
 
                     //  Password compare successfuly
                     }
@@ -345,7 +370,7 @@ function UsersDAO(db) {
                             warning         :   passwordIncorrect_warning
                         });
 
-                    //  Correct password
+                    //  Passwords are matching
                     }
 
                     //  Resolve the promise with the user object found
@@ -355,17 +380,6 @@ function UsersDAO(db) {
 
                 };
 
-
-                //  Check if there was an error querying the database
-                if(params.error) {
-
-                    //  Resolve the promise with an error
-                    return resolve({
-                        error       :   params.error
-                    });
-
-                //  Database queried successfuly
-                }
 
                 //  Check if there was no user found
                 if(params.warning) {
@@ -378,8 +392,9 @@ function UsersDAO(db) {
                 //  User found
                 }
 
+
                 //  Compare the passwords
-                bcrypt.compare(userObject.password, params.userFound.password, compare_cb);
+                bcrypt.compare(params.infoSubmited.password, params.userFound.password, compare_cb);
 
             };
 
@@ -391,24 +406,27 @@ function UsersDAO(db) {
 
         //  Pass the error/warning/userObject back to the callback
         function exit(params) {
-            return callback(params.error, params.warning, params.userFound);
+            return callback(null, params.warning, params.userFound);
         }
 
 
-        //  Query the database with the username provided
-        new Promise(queryDatabase)
+        //  Construct the user document
+        constructUserDocument(params)
+            //  Query the database with the username provided
+            .then(queryDatabase)
             //  Compare the password provided
             .then(comparePasswords)
             //  Pass the error/warning/userObject back to the callback
             .then(exit)
             //  Catch the error in the process (if any)
-            .catch(function(err) {
-                logger('error', err);
+            .catch(function(error) {
+                return callback(error, null, null);
             });
 
     };
 
 }
+
 
 
 //  Export the module

@@ -1,65 +1,150 @@
 //  Require the modules
-var UsersDAO    = require('./index'),
-    MongoClient = require('mongodb').MongoClient,
-    logger      = require('../logger');
+var logger      = require('../logger'),
+    UsersDAO    = require('./index'),
+    MongoClient = require('mongodb').MongoClient;
 
 
 //  Connect to the database
-MongoClient.connect("mongodb://localhost:27017/test", function(err, db) {
+MongoClient.connect('mongodb://localhost:27017/test', function(err, db) {
+
+    'use strict';
+
 
     //  There was an error connecting to the database
     if(err) {
-        logger('error', {
+        return logger('error', {
             message: "Error connecting to the database."
         });
-        throw err;
     }
+
 
     //  Construct a new instance of UsersDAO
     var users       = new UsersDAO(db);
 
 
-    //  Insert a user
-    new Promise(function(resolve, reject) {
+    //  User constructor
+    function UserDocument(params) {
+        this.username   =   params.username;
+        this.name       =   params.name;
+        this.email      =   params.email;
+        this.password   =   params.password;
+    }
 
-        //  Add new user
-        users.addNew({
-            username    :   "test",
-            password    :   "1234",
-            name        :   {
-                first   :   "Ognjen",
-                last    :   "Jevremovic"
-            },
-            email       :   'jevremovic.ognjen@gmail.com'
-        }, function(err, warning, userInserted) {
-            if(err) {
-                logger('error', err);
-            }
-            if(warning) {
-                logger('warning', warning);
-            }
-            console.log("User "+ userInserted._id +" successfuly inserted.");
 
-            //  Resolve the promise
-            return resolve();
-        });
+    //  Construct a new user
+    function constructDummyUser() {
 
-    }).then(function() {
+        //  Promise callback
+        var promise_cb = function(resolve) {
 
-        //  Authenticate the user
-        users.authenticate({
-            username    :   'test',
-            password    :   '12342'
-        }, function(err, warning, userFound) {
-            if(err) {
-                logger('error', err);
-            }
-            if(warning) {
-                logger('warning', warning);
-            }
-            console.log("User "+ userFound._id + " found and successfuly authenticated.");
-        });
+            //  Resolve the promise with a dummy user document
+            return resolve(
+                new UserDocument({
+                    username    :   'test',
+                    name        :   {
+                        first   :   'Ognjen',
+                        last    :   'Jevremovic'
+                    },
+                    email       :   'jevremovic.ognjen@gmail.com',
+                    password    :   '1234'
+                })
+            );
 
-    });
+        };
+
+
+        //  Return a promise
+        return new Promise(promise_cb);
+
+    }
+
+    //  Add a new user
+    function addNewUser(userDocument) {
+
+        //  Promise callback
+        var promise_cb = function(resolve, reject) {
+
+            //  Add user callback
+            var addNew_cb = function(error, warning, userInserted) {
+                //  Error (logs out from the index.js)
+                if(error) {
+                    return reject(error);
+                }
+                //  Warning (log it out)
+                if(warning) {
+                    logger('warning', warning);
+                    return resolve({
+                        warning     :   warning
+                    });
+                }
+                //  No errors/warning
+                logger('info', 'User ' + userInserted._id + ' successfuly insterted.');
+                return resolve({
+                    userInserted    :   userInserted
+                });
+            };
+
+
+            //  Add new user
+            users.addNew(userDocument, addNew_cb);
+
+        };
+
+
+        //  Return a promise
+        return new Promise(promise_cb);
+
+    }
+
+    //  Authenticate a user
+    function authenticateUser(userInserted) {
+
+        //  Promise callback
+        var promise_cb = function(resolve, reject) {
+
+            //  Authenticate user callback
+            var authenticate_cb = function(error, warning, userAuthenticated) {
+                //  Error (logs out in index)
+                if(error) {
+                    return reject(error);
+                }
+                //  Warnign (log it out)
+                if(warning) {
+                    logger('warning', warning);
+                    return resolve({
+                        warning     :   warning
+                    });
+                }
+                //  No errors/warning
+                logger('info', 'User ' + userAuthenticated._id + ' successfuly authenticated.');
+                return resolve();
+            };
+
+
+            //  Authenticate user
+            users.authenticate({
+                username    :   'test',
+                password    :   '1234'
+            }, authenticate_cb);
+
+        };
+
+
+        //  Return a promise
+        return new Promise(promise_cb);
+
+    }
+
+    //  Error handler
+    function handleError(error) {
+        return;
+    }
+
+
+    //  Perform a check
+    constructDummyUser()
+        .then(addNewUser)
+        .then(authenticateUser)
+        .catch(handleError);
 
 });
