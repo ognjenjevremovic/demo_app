@@ -3,22 +3,21 @@
   "version": "0.0.1",
   "description": "Demo application (url shortener)",
   "keywords": [
-      "demo app",
-      " job_submission",
-      "url shortener",
-      "CRUD operations",
-      "Full Stack (MEAN)"
-    ],
+    "demo app",
+    " job_submission",
+    "url shortener",
+    "CRUD operations",
+    "Full Stack (MEAN)"
+  ],
   "license": "MIT",
   "main": "src/server.js",
   "scripts": {
-    "start" : "nodemon src/server.js"
+    "start": "nodemon src/server.js"
   },
   "author": {
-      "name": "Ognjen Jevremovic",
-      "email": "jevremovic.ognjen@gmail.com"
-      },
-  "license": "MIT",
+    "name": "Ognjen Jevremovic",
+    "email": "jevremovic.ognjen@gmail.com"
+  },
   "dependencies": {
     "bcrypt-nodejs": "0.0.3",
     "body-parser": "^1.15.2",
@@ -26,6 +25,9 @@
     "express": "^4.14.0",
     "jsonwebtoken": "^7.1.9",
     "mongodb": "^2.2.10",
+    "pretty-easy-dates": "^0.1.4",
+    "pretty-easy-env-vars": "^0.1.0",
+    "pretty-easy-logs": "^0.1.2",
     "serve-favicon": "^2.3.0"
   },
   "devDependencies": {
