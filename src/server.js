@@ -1,62 +1,72 @@
-//  Require the modules
-var express     = require('express'),
-    MongoClient = require('mongodb').MongoClient,
-    routes      = require('./routes'),
-    envReader   = require('./custom_modules/envReader'),
-    logger      = require('./custom_modules/logger'),
-    datter      = require('./custom_modules/datter');
+//  Dependancies
+var express     =   require('express'),
+    MongoClient =   require('mongodb').MongoClient,
+    envVars     =   require('pretty-easy-env-vars'),
+    dates       =   require('pretty-easy-dates'),
+
+    //  application routes
+    routes      =   require('./routes'),
+
+    //  helper modules
+    helpers     =   require('./custom_modules/helpers'),
+    CustomError =   helpers.Error,
+    log         =   helpers.logger,
+
+    //  initialize the application
+    app =   express();
 
 
-//  Register the application
-var app         = express();
-
-//  Load the environment variables (with error logs enabled)
-envReader.load(".envVars", true);
+//  Load environment variables
+envVars();
 
 
 //  Define the database connection
-var db = {
-    name        :   process.env.DB_NAME,
-    username    :   process.env.DB_USER,
-    password    :   process.env.DB_PASS
-};
-var dbConnection = "mongodb://" + db.username + ":" + db.password + "@ds041486.mlab.com/" + db.name;
+var db = {};
+db.name     =   process.env.DB_NAME;
+db.username =   process.env.DB_NAME;
+db.password =   process.env.DB_PASS;
 
+var dbConnectionURL =   "mongodb://" + db.username + ":" + db.password + "@ds041486.mlab.com/" + db.name;
+
+
+//  Connect to the database and open the application socket
+MongoClient.connect(dbConnectionURL, databaseConnection_callback);
 
 
 //  Database connection callback
-function databaseConnection_callback(db, err) {
-
+function databaseConnection_callback(db, errorConnection) {
     'use strict';
 
 
-    //  Check if there was an error in the connection
-    if(err) {
+    //  init
+    var portNum,
+    _err, _errMessage,
+    _info, _infoMessage;
 
+
+    //  Error connection
+    if(errorConnection) {
         //  Construct the error message
-        var databaseConnection_error = {
-            date    : datter().time + " " + datter().date,
-            stack   : err.trace,
-            message : "There was an error connecting to the '" + db.name + "' database! \n"
-        };
+        _err =  {};
+        _err.message =  "There was an error connecting to the '" + db.name + "' database!";
+        _err.stack   =  errorConnection.trace;
+        _errMessage =   new CustomError(_err);
 
-        //  Error out (database is a MUST for the app, that's why we close it if we cannot connect to the database)
+        log.err(_errMessage);
+
         /*
-        *   db is on the same server as the back-end
-        *   this is for development purposes only (and demo apps!)
+        *   Error out
+        *   database is a MUST for the app, that's why we close the application
+        *   it if we cannot connect to the database
         */
-        throw logger('err', databaseConnection_error);
-
-    //  Connection established
+        throw new Error('\n\n   => Database connection error! ');
     }
 
 
-    //  Register the port number
-    var appPort     = process.env.PORT;
-
     //  Register the application routes
     routes(app, db);
-
+    //  Get the port number
+    portNum =   process.env.PORT;
 
     //  Define the static file server
     // app.use(express.static("/static", __dirname + "/public/static"));
@@ -64,19 +74,13 @@ function databaseConnection_callback(db, err) {
 
 
     //  Define the socket for the webapp
-    app.listen(appPort, function() {
-
+    app.listen(portNum, function() {
         //  Construct the info message
-        var serverListen_info = {
-            date    : datter().time + " " + datter().date,
-            message : "Server listening on the port " + appPort + "."
-        };
-        logger('info', serverListen_info);
+        _info = {};
+        _info.message = "Application running!";
+        _info.stack   = "Server listening on the port " + portNum + ".";
+        _infoMessage  = new CustomError(_info);
 
+        log.info(_infoMessage);
     });
-
-
 }
-
-//  Connect to the database and set the application socket
-MongoClient.connect(dbConnection, databaseConnection_callback);

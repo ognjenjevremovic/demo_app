@@ -1,9 +1,3 @@
-//  Require the modules
-var logger  = require('../custom_modules/logger'),
-    datter  = require('../custom_modules/datter');
-
-
-
 //  Define the module
 function routesModule(app, db) {
 
@@ -11,14 +5,17 @@ function routesModule(app, db) {
 
 
     //
-    app
-        .get("/", function(req, res, next) {
+    app.get("/", function(req, res, next) {
+        res.json({
+            message :   "Working root route"
+        });
+    });
 
-            res
-                .json({
-                    message:    "Root"
-                });
-
+    app.get('*', function(req, res, next) {
+        // res.json({
+        //     message :   "Unregistered route. Redirection, working as intended"
+        // });
+        res.redirect(301, '/');
     });
 
 }
