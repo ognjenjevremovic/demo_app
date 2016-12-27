@@ -56,7 +56,6 @@ function UsersDAO(db) {
 
             //  Return a promise
             return new Promise(promise_cb);
-
         }
 
         //  Generate the salt for password hashing
@@ -380,7 +379,6 @@ function UsersDAO(db) {
             this.password   =   params.password;
         }
 
-
         //  Construct the user document
         function constructUserDocument(params) {
 
@@ -449,7 +447,6 @@ function UsersDAO(db) {
                     });
 
                 };
-
 
                 //  Query the database
                 usersCollection
