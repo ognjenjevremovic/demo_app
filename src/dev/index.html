@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en-US">
     <head>
         <meta charset="utf-8">
+        <meta name="robots" content="ALL">
         <title>URL shortener</title>
 
 
@@ -16,6 +17,13 @@
 
         <!-- Custom CSS -->
         <link rel="stylesheet" href="static/css/style.min.css">
+
+
+        <!-- When prepearing a production version of the app,
+            remove CDN links and use a combined.min.css (build) file
+            that consists of all .css file dependancies - including vendor libraries
+        -->
+        <!-- <link rel="stylesheet" href="static/css/combined.min.css"> -->
 
 
         <!-- Author, Copyright, Keywords -->
@@ -91,6 +99,15 @@
         <script
             src="static/js/app.min.js">
         </script>
+
+
+        <!-- When prepearing a production version of the app,
+            remove CDN links and use a combined.min.js (build) file
+            that consists of all .js file dependancies - including vendor libraries
+        -->
+        <!-- <script
+            src="static/js/combined.min.js">
+        </script> -->
 
     </body>
 </html>

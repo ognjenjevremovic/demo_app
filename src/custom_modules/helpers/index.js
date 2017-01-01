@@ -1,9 +1,9 @@
 //  Dependancies
-var CustomError =   require('./CustomError'),
-    logger      =   require('./logger');
+var CustomMessage = require('./CustomMessage'),
+    logger        = require('./logger');
 
 
 
 //  Export the module
-module.exports.Error  = CustomError;
-module.exports.logger = logger;
+module.exports.Message =    CustomMessage;
+module.exports.logger  =    logger;

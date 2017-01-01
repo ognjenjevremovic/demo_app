@@ -1,29 +1,28 @@
-//  Dependancies
+//  Dependancie modules
 var express     =   require('express'),
     MongoClient =   require('mongodb').MongoClient,
     envVars     =   require('pretty-easy-env-vars'),
     dates       =   require('pretty-easy-dates'),
 
-    //  application routes
-    routes      =   require('./routes'),
-
     //  helper modules
-    helpers     =   require('./custom_modules/helpers'),
-    CustomError =   helpers.Error,
-    log         =   helpers.logger,
+    helpers       = require('./custom_modules/helpers'),
+    CustomMessage = helpers.Message,
+    log           = helpers.logger,
+
+    //  application routes
+    routes        = require('./routes'),
 
     //  initialize the application
     app =   express();
 
-
-//  Load environment variables
-envVars();
+    //  Load environment variables
+    envVars();
 
 
 //  Define the database connection
 var db = {};
 db.name     =   process.env.DB_NAME;
-db.username =   process.env.DB_NAME;
+db.username =   process.env.DB_USER;
 db.password =   process.env.DB_PASS;
 
 var dbConnectionURL =   "mongodb://" + db.username + ":" + db.password + "@ds041486.mlab.com/" + db.name;
@@ -50,7 +49,7 @@ function databaseConnection_callback(db, errorConnection) {
         _err =  {};
         _err.message =  "There was an error connecting to the '" + db.name + "' database!";
         _err.stack   =  errorConnection.trace;
-        _errMessage =   new CustomError(_err);
+        _errMessage =   new CustomMessage(_err);
 
         log.err(_errMessage);
 
@@ -65,12 +64,13 @@ function databaseConnection_callback(db, errorConnection) {
 
     //  Register the application routes
     routes(app, db);
+
     //  Get the port number
     portNum =   process.env.PORT;
 
     //  Define the static file server
-    // app.use(express.static("/static", __dirname + "/public/static"));
-    // app.use(favicon(__dirname + "/public/static/img/favicon.png"));
+    // app.use(express.static("/static", __dirname + "/dist"));
+    // app.use(favicon(__dirname + "/dist/img/favicon.png"));
 
 
     //  Define the socket for the webapp
@@ -79,7 +79,7 @@ function databaseConnection_callback(db, errorConnection) {
         _info = {};
         _info.message = "Application running!";
         _info.stack   = "Server listening on the port " + portNum + ".";
-        _infoMessage  = new CustomError(_info);
+        _infoMessage  = new CustomMessage(_info);
 
         log.info(_infoMessage);
     });

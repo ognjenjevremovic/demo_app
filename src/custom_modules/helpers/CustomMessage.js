@@ -1,5 +1,5 @@
 //  Constructor
-function CustomError(err) {
+function CustomMessage(err) {
     'use strict';
 
 
@@ -14,4 +14,4 @@ function CustomError(err) {
 
 
 //  Export the module
-module.exports =    CustomError;
+module.exports =    CustomMessage;
